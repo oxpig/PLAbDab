@@ -70,6 +70,16 @@ class PLAbDab(SequenceSearch, StructureSearch):
                 return add_url_to_paired_data(self.paired_sequences)
         else:
             return self.unpaired_sequences
+        
+    def sequence_plus_structure_search(self, seqs, keep_best_n=20, rmsd_cutoff = 1.25, seq_identity_cutoff = 0.8, filename = "temp_structure.pdb", url=True):
+    
+        cdr_seq_search = self.sequence_search(seqs, keep_best_n=-1, regions = ['cdrs'],length_matched=[True], seq_identity_cutoff=seq_identity_cutoff)
+        struc_search = self.structure_search(seqs, rmsd_cutoff = rmsd_cutoff, url = url, filename = filename)
+        output = cdr_seq_search[cdr_seq_search.ID.isin(struc_search.ID)]
+        output["rmsd"] = struc_search.set_index("ID").loc[output.ID].rmsd.values
+        output["url"] = struc_search.set_index("ID").loc[output.ID].url.values
+
+        return output.sort_values("rmsd").reset_index(drop=True).head(keep_best_n)
 
     def column_search(self, term = "antibod", paired=True, column=None, url=True, case = False):
         if paired:
